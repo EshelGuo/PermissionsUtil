@@ -71,6 +71,9 @@ private static int index = 0;
 			boolean succeed = RequestPermissionUtil.requestPermission(activity, permission.permission, permission.requestCode);
 			permission.hasPermission = succeed;
 			index++;
+			if(succeed){
+				requestPermissionAll(activity);
+			}
 		}
 	}
 
