@@ -1,7 +1,7 @@
 #动态申请权限工具类
 android 6.0 以上需要动态申请权限, 而动态申请权限一般比较繁琐, 所以该工具类应运而生.
-
 ## 重大更新
+###请注意: permission 文件夹中的 三个文件 Permission Permissions RequestPermissionUtil 三个类已经弃用 , 请使用根目录下的文件
 ### 1. 对之前的 API 的 影响 (重要):
 	使用 initPermissions() 方式初始化的权限 每次 app 被开启 只能 请求一次, 因为请求完成
 	后会将集合清空 
