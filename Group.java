@@ -78,17 +78,22 @@ public enum Group {
 		return null;
 	}
 	public void changePermissionState(boolean hasPermission,int permissionCode){
+		changePermissionState(hasPermission,permissionCode,false);
+	}
+	public void changePermissionState(boolean hasPermission,int permissionCode,boolean callbacked){
 		for (Permission permission : mPermissions) {
 			permission.hasPermission = hasPermission;
 			if(permission.requestCode == permissionCode){
 				Log.i("permission","hasPermission: "+(permission.hasPermission?"true":"false"));
-				RequestCallback callback = permission.callback;
-				if(callback != null){
-					if(hasPermission)
-						callback.requestSuccess(permission);
-					else{
-						if(callback.requestFailed(permission)){
-							Permissions.isStop = true;
+				if(!callbacked) {
+					RequestCallback callback = permission.callback;
+					if (callback != null) {
+						if (hasPermission)
+							callback.requestSuccess(permission);
+						else {
+							if (callback.requestFailed(permission)) {
+								Permissions.isStop = true;
+							}
 						}
 					}
 				}

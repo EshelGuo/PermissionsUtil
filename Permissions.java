@@ -6,6 +6,7 @@ import android.os.Build;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -23,10 +24,9 @@ import java.util.List;
 		super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 	}
  */
-
 public class Permissions {
 	protected static boolean isStop;
-	private static List<Permission> permissions = new ArrayList<>();
+	private static List<Permission> permissions = new ArrayList<Permission>();
 	public static boolean need;//需要动态申请权限
 	private static boolean requesting = false;
 	static {
@@ -98,26 +98,30 @@ private static int index = 0;
 			}
 		}
 	}
-
 	/**
 	 * 改变权限的状态
 	 * @param permission 权限名
 	 * @param success 是否请求成功
 	 */
-	public static synchronized void changePermissionState(Activity activity, int requestCode,String permission, boolean success){
+	static synchronized void changePermissionState(Activity activity, int requestCode,String permission, boolean success){
+		changePermissionState(activity,requestCode,permission,success,false);
+	}
+	static synchronized void changePermissionState(Activity activity, int requestCode,String permission, boolean success,boolean callbacked){
 		if(need) {
 			Permission permission1 = findPermission(permission);
 			if(success) {
 				if (permission1 != null) {
 					Group group = Group.findGroupByPermission(permission1);
 					if(group != null)
-						group.changePermissionState(true,requestCode);
+						group.changePermissionState(true,requestCode,callbacked);
 				}
 			}else{
-				RequestCallback callback = permission1.callback;
-				if(callback != null){
-					if(callback.requestFailed(permission1)){
-						isStop = true;
+				if(!callbacked){
+					RequestCallback callback = permission1.callback;
+					if(callback != null){
+						if(callback.requestFailed(permission1)){
+							isStop = true;
+						}
 					}
 				}
 			}
@@ -135,10 +139,15 @@ private static int index = 0;
 		return addPermission(permission);
 	}
 	public static Permission addPermission(String permission){
+		return addPermission(permission, null);
+	}
+	public static Permission   addPermission(String permission,RequestCallback callback){
 		if(need) {
 			Permission p = Permission.findPermissionByName(permission);
 			if(p != null) {
 				if(p.isDangerPermission) {
+					if(callback != null)
+						p.setCallback(callback);
 					permissions.add(p);
 				}
 				return p;
@@ -148,13 +157,15 @@ private static int index = 0;
 		return null;
 	}
 	public static void addPermissions(String ... permissions){
+		addPermissions(null,permissions);
+	}
+	public static void addPermissions(RequestCallback callback, String ... permissions){
 		if(need) {
 			for (String permission : permissions) {
-				addPermission(permission);
+				addPermission(permission,callback);
 			}
 		}
 	}
-
 	/**
 	 * 检查用户是否授权
 	 * @param permission
@@ -170,7 +181,6 @@ private static int index = 0;
 		}
 		return true;
 	}
-
 	/**
 	 * use this
 	 * @param activity
@@ -187,22 +197,24 @@ private static int index = 0;
 			}
 		}
 	}
-
 	/**
 	 * use this
 	 * @param activity
 	 * @param permissions
 	 */
-	public static synchronized void requestPermission(Activity activity,String ... permissions){
+public static void requestPermission(Activity activity,String ... permissions){
+		requestPermission(activity,null,permissions);
+	}
+
+	public static void requestPermission(Activity activity,RequestCallback callback, String ... permissions){
 		if(!requesting) {
 			if(Permissions.permissions != null) {
 //				Permissions.permissions.clear();
-				addPermissions(permissions);
+				addPermissions(callback,permissions);
 				requestPermissionAll(activity);
 			}
 		}
 	}
-
 	/**
 	 * use this
 	 * @param activity
@@ -218,12 +230,34 @@ private static int index = 0;
 			requestPermission(activity,permission1.setCallback(callback));
 	}
 	static boolean permissionUpdate;
-
 	/**
 	 * useless
 	 */
 	@Deprecated
 	public static void updatePermissionState(){
 		permissionUpdate = true;
+	}
+
+	public static int getIndex(){
+		return index;
+	}
+	public static void goBack(Activity activity,RequestCallback callback) {
+		if(save.size() > saveIndex-1){
+			for (int i = 0; i < saveIndex-1; i++) {
+				save.remove(0);
+			}
+			String[] perm = new String[save.size()];
+			save.toArray(perm);
+			requestPermission(activity,callback,perm);
+		}
+	}
+	private static int saveIndex;
+	private static List<String> save = new LinkedList<String>();
+	public static void savePermission(){
+		saveIndex = index;
+		save.clear();
+		for (Permission permission : permissions) {
+			save.add(permission.permission);
+		}
 	}
 }

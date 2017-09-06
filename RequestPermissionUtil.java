@@ -40,16 +40,20 @@ public class RequestPermissionUtil {
 				Permissions.changePermissionState(activity,requestCode,permissions[i],true);
 			}else if(grantResults[i] == PackageManager.PERMISSION_DENIED){
 				// user Permission Denied (yong hu ju jue shou quan)
-				Permissions.changePermissionState(activity,requestCode,permissions[i],false);
 				Log.i("permission","用户拒绝");
+				boolean isCallback = false;
 				if(!ActivityCompat.shouldShowRequestPermissionRationale(activity,permissions[i])){
 					Permission permission = Permission.findPermissionByName(permissions[i]);
 					if(permission != null && permission.callback != null){
 						boolean isStop = permission.callback.userSelectNeverAgain(permission, NeverAgainUtil.newInstance());
-						if(isStop)
+						if(isStop) {
 							Permissions.isStop = true;
+						}
+						isCallback = true;
 					}
-				}
+				}else
+					isCallback = false;
+				Permissions.changePermissionState(activity,requestCode,permissions[i],false,isCallback);
 			}
 
 		}
