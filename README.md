@@ -1,5 +1,8 @@
 #动态申请权限工具类
 android 6.0 以上需要动态申请权限, 而动态申请权限一般比较繁琐, 所以该工具类应运而生.
+##  2017/11/17更新内容:
+1. 适配 Android 8.0 , 8.0新增动态权限请求同一组内权限即使某一权限已经同意了,也必须请求该权限, 但是不会弹出权限请求对话框, 如果不请求将无法使用该权限的功能, 更新工具类, 即使在8.0设备上, 使用工具类进行权限请求, 同一组内权限请求一次即可
+2. 更新工具类目录结构
 ##  2017/09/06更新内容:
 1. 增加了一个工具类 , 申请权限时当用户禁止和勾选不再提醒时可以弹出对话框提醒用户权限很重要 , 让用户重新去设置 , 当用户勾选不再提醒时 , 弹出对话框提示用户去应用管理开启权限
 2. 增加了 Permissions 类中一些方法
@@ -51,20 +54,30 @@ android 6.0 以上需要动态申请权限, 而动态申请权限一般比较繁
 	//将跳转到该应用的应用管理界面 可以在 onActivityResult 回调中得到 结果 (用户是否开启权限) 
 	使用: NeverAgainUtil.newInstance().gotoPermissionSettingUI(activity,requestCode)
 ## 使用方法:
->
+
 0. 将工具类复制到项目中
-1. 在需要请求权限的 Activity 中重新下方法, 作用是判断权限是否请求成功 :
->
+1. 在需要请求权限的 Activity 中重写该方法, 作用是判断权限是否请求成功 :
+
 		@Override
 		public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
 			RequestPermissionUtil.onRequestPermissionsResult(this,requestCode, permissions, grantResults);
 			super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		}
+2. 在需要请求权限的 Activity 中重写 onRestart()方法, 并在其中调用 PermissionUtil.onRestart();
+
+		public void onRestart(){
+			PermissionUtil.onRestart(new RequestPermission(){
+				public void onReRequest(){
+					// 再此处处理进入设置中心返回后再次请求权限的操作, 
+					// 即再调用一次工具类请求权限即可
+				}
+			});
+		}
 3. 在Activity onCreate中(或别的地方) 调用 requestPermissionAll 方法将触发申请权限 :
->
+
 		Permissions.requestPermissionAll(this);
 4. 在 工具类 Permissions 中 , 在 initPermissions() 方法中加入所需动态申请的所有权限:
->
+
 		/**
 		 * 初始化权限
 		 */
@@ -78,6 +91,5 @@ android 6.0 以上需要动态申请权限, 而动态申请权限一般比较繁
 						Manifest.permission.ACCESS_FINE_LOCATION,
 						Manifest.permission.READ_PHONE_STATE
 				);
->
 			}
 		}
