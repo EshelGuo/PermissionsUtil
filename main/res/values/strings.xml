@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">PermissionLib</string>
+    <string name="again_accredit">再次授予权限</string>
+    <string name="goto_setting">去设置中心</string>
+    <string name="never_again">该权限非常重要, 没有该权限应用将无法运行 , 请确认是否去设置中心授予该权限</string>
+    <string name="permission_failed_msg">该权限非常重要, 没有该权限应用将无法运行 , 请确认是否授予该权限</string>
+    <string name="cancle">取消</string>
+    <string name="warn">警告</string>
+    <string name="permission_again"> 请确认是否授予该权限</string>
+    <string name="permission_gotosetting"> 请确认是否去设置中心授予该权限</string>
+</resources>

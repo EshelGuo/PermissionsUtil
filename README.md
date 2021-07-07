@@ -1,23 +1,83 @@
 #动态申请权限工具类
 android 6.0 以上需要动态申请权限, 而动态申请权限一般比较繁琐, 所以该工具类应运而生.
-##使用方法:
->
-0. 将三个工具类复制到项目中
-1. 需要在 Activity 中重新下方法, 作用是判断权限是否请求成功 :
->
-		@Override
-		public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-			super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-			if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-				Permissions.changePermissionState(this,permissions[0],true);
+##  2017/11/17更新内容:
+1. 适配 Android 8.0 , 8.0新增动态权限请求同一组内权限即使某一权限已经同意了,也必须请求该权限, 但是不会弹出权限请求对话框, 如果不请求将无法使用该权限的功能, 更新工具类, 即使在8.0设备上, 使用工具类进行权限请求, 同一组内权限请求一次即可
+2. 更新工具类目录结构
+##  2017/09/06更新内容:
+1. 增加了一个工具类 , 申请权限时当用户禁止和勾选不再提醒时可以弹出对话框提醒用户权限很重要 , 让用户重新去设置 , 当用户勾选不再提醒时 , 弹出对话框提示用户去应用管理开启权限
+2. 增加了 Permissions 类中一些方法
+## 重大更新 2017/09/05
+###请注意: permission 文件夹中的 三个文件 Permission Permissions RequestPermissionUtil 三个类已经弃用 , 请使用根目录下的文件
+### 1. 对之前的 API 的 影响 (重要):
+	使用 initPermissions() 方式初始化的权限 每次 app 被开启 只能 请求一次, 因为请求完成
+	后会将集合清空 
+	现在请求 不建议使用 requestPermissionAll() 方法进行请求 , 请使用提供的新的 API 进行请求
+### 2. 添加了新的方法 , 支持 单个或多个 权限 同时请求
+	requestPermission(Activity activity,Permission ... permissions)//使用提供的 Permission 枚举类一次请求多个权限
+	requestPermission(Activity activity,String ... permissions)//使用权限字符串一次请求多个权限 权限字符串可以参考 Manifest 类
+	requestPermission(Activity activity,Permission permission,RequestCallback callback)// 使用有回调的请求 请求一个权限
+	requestPermission(Activity activity,String permission,RequestCallback callback)// 使用字符串(有回调) 请求一个权限
+### 3. 重构了部分代码结构 , 使用了 两个枚举类 将权限分组
+### 4. (重要) 工具类中 有一部分需要维护 :
+	 Group 和 Permission 两个枚举类 Manifest 类中的所有权限进行了分类 , 由于未来可能添
+	加新的权限 , 所以需要 使用者 维护 Group 和 Permission 两个类 , 当有新的权限添加时 
+	及时更新 Group 和 Permission 中的权限 , 当然到时候我也会更新 git 仓库
+	在 Permissions 类 addPermission() 方法中有一个 TODO , 当 改行执行时 有两种情况 , 
+	第一种是 权限字符串 传入错误 , 还有就是 可能Google更新了权限 , 但是没有及时在 枚举类
+	中更新 
+### 5. 请求接口回调使用示例(可以在同时请求多个权限时使用接口回调 , 也可以使用同一个接口回调 当然也可以不用):
+	Permissions.requestPermission(this, Permission.WRITE_EXTERNAL_STORAGE.setCallback(new RequestCallback() {
+			@Override
+			public void requestSuccess(Permission permission) {
+				Toast.makeText(MainActivity.this,"请求成功",0).show();
 			}
+
+			@Override
+			public boolean requestFailed(Permission permission) {
+				Toast.makeText(MainActivity.this,"请求失败",0).show();
+				return false;
+			}
+
+			@Override
+			public void havePermissioned(Permission permission) {
+				Toast.makeText(MainActivity.this,"之前请求过",0).show();
+			}
+
+			@Override
+			public boolean userSelectNeverAgain(Permission permission, NeverAgainUtil neverAgainUtil) {
+				neverAgainUtil.gotoPermissionSettingUI(MainActivity.this,0);
+				return false;
+			}
+		}),Permission.CAMERA);
+### 6. 用户勾选绝不提示 后的回调 :
+	public void gotoPermissionSettingUI(Activity activity,int requestCode)
+	//将跳转到该应用的应用管理界面 可以在 onActivityResult 回调中得到 结果 (用户是否开启权限) 
+	使用: NeverAgainUtil.newInstance().gotoPermissionSettingUI(activity,requestCode)
+## 使用方法:
+
+0. 将工具类复制到项目中
+1. 在需要请求权限的 Activity 中重写该方法, 作用是判断权限是否请求成功 :
+
+		@Override
+		public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+			RequestPermissionUtil.onRequestPermissionsResult(this,requestCode, permissions, grantResults);
 			super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 		}
+2. 在需要请求权限的 Activity 中重写 onRestart()方法, 并在其中调用 PermissionUtil.onRestart();
+
+		public void onRestart(){
+			PermissionUtil.onRestart(new RequestPermission(){
+				public void onReRequest(){
+					// 再此处处理进入设置中心返回后再次请求权限的操作, 
+					// 即再调用一次工具类请求权限即可
+				}
+			});
+		}
 3. 在Activity onCreate中(或别的地方) 调用 requestPermissionAll 方法将触发申请权限 :
->
+
 		Permissions.requestPermissionAll(this);
 4. 在 工具类 Permissions 中 , 在 initPermissions() 方法中加入所需动态申请的所有权限:
->
+
 		/**
 		 * 初始化权限
 		 */
@@ -31,6 +91,5 @@ android 6.0 以上需要动态申请权限, 而动态申请权限一般比较繁
 						Manifest.permission.ACCESS_FINE_LOCATION,
 						Manifest.permission.READ_PHONE_STATE
 				);
->
 			}
 		}
